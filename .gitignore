@@ -22,3 +22,6 @@ Desktop.ini
 ## NuGet
 *.nupkg
 project.lock.json
+
+## Compiled shaders (regenerate with glslc)
+src/shaders/*.spv

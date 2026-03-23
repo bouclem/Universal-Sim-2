@@ -7,11 +7,22 @@
     <Nullable>enable</Nullable>
     <ApplicationIcon>src\assets\icon.ico</ApplicationIcon>
     <AssemblyName>UniversalSim2</AssemblyName>
-    <Version>0.0.1</Version>
+    <Version>0.0.2</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Raylib-cs" Version="7.0.2" />
+    <None Include="src\shaders\*.spv" CopyToOutputDirectory="PreserveNewest" Link="shaders\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Silk.NET" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Input" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Maths" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Vulkan" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
   </ItemGroup>
 
 </Project>

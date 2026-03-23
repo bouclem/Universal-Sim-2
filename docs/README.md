@@ -2,11 +2,13 @@
 
 A 3D universal simulation game — sequel to [Universal Sim](https://github.com/bouclem/UNIVERSAL-SIM).
 
-Built with C# (.NET 6) and [Raylib-cs](https://github.com/raylib-cs/raylib-cs).
+Built with C# (.NET 6), Silk.NET, and Vulkan.
 
 ## Requirements
 
 - .NET 6 SDK
+- Vulkan-capable GPU + drivers
+- Vulkan SDK (for shader compilation with `glslc`)
 
 ## Run
 
@@ -16,18 +18,26 @@ dotnet run
 
 ## Controls
 
-- Main menu: click PLAY to start, QUIT to exit.
-- ESC closes the window at any time.
+- ENTER — Play
+- Q — Quit (from menu)
+- WASD — Move
+- Mouse — Look around
+- Space / Shift — Up / Down
+- ESC — Unlock cursor / Back to menu
 
 ## Project Structure
 
 ```
-Program.cs              — Entry point
-src/Game.cs             — Main game loop
-src/MainMenu.cs         — Menu screen
-src/GameScene.cs        — 3D game scene
-src/UI.cs               — Shared UI helpers
-src/objects/             — Game objects
-src/assets/             — Icons, images
-docs/                   — Documentation
+Program.cs                          — Entry point
+src/Game.cs                         — Window + game loop
+src/MainMenu.cs                     — Menu state
+src/GameScene.cs                    — 3D scene
+src/objects/                        — Game objects
+src/rendering/VulkanEngine.cs       — Vulkan renderer
+src/rendering/Camera.cs             — Free camera
+src/rendering/MeshGenerator.cs      — Sphere mesh generation
+src/rendering/ShaderHelper.cs       — SPIR-V shader loading
+src/shaders/                        — GLSL + compiled SPIR-V
+src/assets/                         — Icons, images
+docs/                               — Documentation
 ```

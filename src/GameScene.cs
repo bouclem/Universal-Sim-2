@@ -1,21 +1,17 @@
 using System.Numerics;
-using Raylib_cs;
 using UniversalSim2.Objects;
 
 namespace UniversalSim2;
 
 public static class GameScene
 {
-    private static readonly YellowStarPrototype Star = new(Vector3.Zero, 1.0f);
+    private static YellowStarPrototype _star = null!;
 
-    public static void Draw(Camera3D camera)
+    public static void Initialize()
     {
-        Raylib.ClearBackground(Color.Black);
-
-        Raylib.BeginMode3D(camera);
-
-        Star.Draw();
-
-        Raylib.EndMode3D();
+        _star = new YellowStarPrototype(Vector3.Zero, 1.0f);
     }
+
+    public static float[] GetVertices() => _star.Vertices;
+    public static uint[] GetIndices() => _star.Indices;
 }

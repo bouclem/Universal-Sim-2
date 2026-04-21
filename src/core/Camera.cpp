@@ -12,6 +12,9 @@ Camera::Camera(glm::vec3 position, float yaw, float pitch)
 }
 
 glm::mat4 Camera::viewMatrix() const {
+    if (m_following) {
+        return glm::lookAt(m_position, m_followTarget, m_worldUp);
+    }
     return glm::lookAt(m_position, m_position + m_front, m_up);
 }
 
@@ -20,9 +23,30 @@ glm::mat4 Camera::projectionMatrix(float aspect) const {
 }
 
 void Camera::processKeyboard(GLFWwindow* window, float deltaTime) {
+    if (m_following) {
+        // In follow mode, WASD orbits around the target
+        float orbitSpeed = 60.0f * deltaTime;
+
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            m_followYaw -= orbitSpeed;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            m_followYaw += orbitSpeed;
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            m_followPitch = std::min(m_followPitch + orbitSpeed, 89.0f);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            m_followPitch = std::max(m_followPitch - orbitSpeed, -89.0f);
+
+        // Zoom in/out
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+            m_followDistance = std::max(m_followDistance - m_followDistance * deltaTime, 0.5f);
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+            m_followDistance += m_followDistance * deltaTime;
+
+        return;
+    }
+
     float velocity = m_speed * deltaTime;
 
-    // Hold shift to go faster
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
         velocity *= 5.0f;
     }
@@ -42,6 +66,14 @@ void Camera::processKeyboard(GLFWwindow* window, float deltaTime) {
 }
 
 void Camera::processMouseMovement(float xOffset, float yOffset) {
+    if (m_following) {
+        // Mouse orbits around target in follow mode
+        m_followYaw += xOffset * m_sensitivity;
+        m_followPitch += yOffset * m_sensitivity;
+        m_followPitch = std::clamp(m_followPitch, -89.0f, 89.0f);
+        return;
+    }
+
     xOffset *= m_sensitivity;
     yOffset *= m_sensitivity;
 
@@ -53,9 +85,79 @@ void Camera::processMouseMovement(float xOffset, float yOffset) {
 }
 
 void Camera::processScroll(float yOffset) {
-    // Adjust movement speed with scroll
+    if (m_following) {
+        // Scroll adjusts follow distance
+        m_followDistance -= yOffset * m_followDistance * 0.1f;
+        m_followDistance = std::clamp(m_followDistance, 0.5f, 10000.0f);
+        return;
+    }
+
     m_speed += yOffset * 5.0f;
     m_speed = std::clamp(m_speed, 1.0f, 500.0f);
+}
+
+void Camera::setFollowTarget(const glm::vec3& target, float radius) {
+    m_following = true;
+    m_followTarget = target;
+    m_followDistance = radius * 4.0f;
+    m_transitioning = true;
+    m_transitionStart = m_position;
+    m_transitionTime = 0.0f;
+
+    // Compute initial orbit angles from current camera position
+    glm::vec3 offset = m_position - target;
+    float dist = glm::length(offset);
+    if (dist > 0.001f) {
+        m_followYaw = glm::degrees(std::atan2(offset.z, offset.x));
+        m_followPitch = glm::degrees(std::asin(
+            std::clamp(offset.y / dist, -1.0f, 1.0f)));
+    }
+}
+
+void Camera::clearFollowTarget() {
+    if (m_following) {
+        // Preserve current look direction when exiting follow mode
+        glm::vec3 dir = glm::normalize(m_followTarget - m_position);
+        m_yaw = glm::degrees(std::atan2(dir.z, dir.x));
+        m_pitch = glm::degrees(std::asin(std::clamp(dir.y, -1.0f, 1.0f)));
+        updateVectors();
+    }
+    m_following = false;
+    m_transitioning = false;
+}
+
+bool Camera::updateFollow(const glm::vec3& target, float deltaTime) {
+    if (!m_following) return false;
+
+    m_followTarget = target;
+
+    // Compute desired camera position from orbit angles
+    float yawRad = glm::radians(m_followYaw);
+    float pitchRad = glm::radians(m_followPitch);
+
+    glm::vec3 offset;
+    offset.x = std::cos(pitchRad) * std::cos(yawRad);
+    offset.y = std::sin(pitchRad);
+    offset.z = std::cos(pitchRad) * std::sin(yawRad);
+    offset *= m_followDistance;
+
+    glm::vec3 desiredPos = target + offset;
+
+    if (m_transitioning) {
+        m_transitionTime += deltaTime;
+        float t = std::min(m_transitionTime / m_transitionDuration, 1.0f);
+        // Smooth ease-in-out
+        t = t * t * (3.0f - 2.0f * t);
+        m_position = glm::mix(m_transitionStart, desiredPos, t);
+        if (t >= 1.0f) {
+            m_transitioning = false;
+        }
+    } else {
+        // Smooth follow with slight lag
+        m_position = glm::mix(m_position, desiredPos, std::min(deltaTime * 8.0f, 1.0f));
+    }
+
+    return true;
 }
 
 void Camera::updateVectors() {

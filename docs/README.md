@@ -2,17 +2,21 @@
 
 A 3D procedural space simulation combining ideas from Universe Sandbox² and SpaceEngine.
 
-## Version 0.3.0
+## Version 0.4.0
 
 Procedural space simulation with:
 - N-body gravitational physics (Velocity Verlet)
-- Procedurally generated star with name, mass, granulation, sunspots
-- 4-8 planets with procedural names, masses, and improved surface detail
-- Moons, planetary rings, and atmospheres
+- Procedurally generated star with animated granulation, sunspots, corona
+- 4-8 planets with realistic procedural surfaces (biomes, oceans, storms, haze)
+- Moons, planetary rings, and atmospheres with Rayleigh/Mie scattering
+- Asteroid belt with 2000 instanced bodies
+- Orbit path prediction lines (full Keplerian ellipse)
+- Body focus/follow camera mode
+- Collision detection and response (momentum-conserving merge)
 - HUD overlay: selected body info, simulation speed, controls
 - Orbit trail visualization
+- Milky Way background with nebulae and multi-layer starfield
 - LOD icosphere rendering for all celestial bodies
-- Domain-warped noise, ridged mountains, Voronoi craters (no textures)
 - Free-fly camera with crosshair selection
 
 ## Build
@@ -26,18 +30,20 @@ cmake --build build --config Release
 
 ## Controls
 
-- WASD - Move
-- Mouse - Look around
-- Space / Ctrl - Up / Down
+- WASD - Move (orbit in follow mode)
+- Mouse - Look around (orbit in follow mode)
+- Space / Ctrl - Up / Down (zoom in follow mode)
 - Shift - Move faster
-- Scroll - Adjust speed
+- Scroll - Adjust speed (zoom in follow mode)
 - R - Regenerate solar system
 - P - Pause / Resume simulation
 - +/- - Speed up / slow down simulation
 - H - Toggle HUD overlay
 - T - Toggle orbit trails
+- O - Toggle orbit prediction lines
+- F - Follow selected body
 - F11 - Toggle fullscreen
-- Escape - Quit
+- Escape - Exit follow mode / Quit
 
 ## Dependencies
 

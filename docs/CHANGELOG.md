@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.4.0 - 2026-04-21
+- Orbit path prediction lines (full Keplerian ellipse from current state, toggle with O)
+- Body focus/follow camera mode (F to lock onto selected body, Escape to exit)
+- Collision detection and response (momentum-conserving merge, volume addition)
+- Asteroid belt: 2000 instanced asteroids placed in the largest orbital gap
+- Massively upgraded procedural textures:
+  - Rocky planets: continents/oceans with depth coloring, biome system (desert, grassland, forest, tundra, snow), tectonic ridges (Swiss turbulence), bump mapping from noise derivatives, ocean Fresnel specular, faint night-side city lights, subsurface scattering at terminator, tone mapping
+  - Gas giants: 3-tier banding with domain-warped distortion, chevron patterns, Great Spot with swirling interior and dark eye, smaller storm vortices, belt turbulence
+  - Ice giants: methane-blue haze layers, wispy cloud streaks, dark spot with bright companion, polar aurora glow
+  - Star: animated Voronoi granulation, sunspot umbra/penumbra, faculae, wavelength-dependent limb darkening, corona glow, HDR bloom
+  - Background: Milky Way band with dust lanes, colored nebula patches, 3-layer starfield with diffraction spikes and glow halos, star cluster glow
+  - Atmosphere: Rayleigh phase function, Mie forward scattering, sunset/sunrise coloring, atmospheric extinction
+  - Rings: 4-layer density + particle noise, 4 named gaps, inner-to-outer color gradient, forward scattering translucency, soft penumbra shadows
+- Gradient noise (Perlin-style) replaces value noise for smoother, less pixelated surfaces
+- Escape key exits follow mode before quitting
+
 ## v0.3.0 - 2026-04-21
 - N-body gravitational simulation (Velocity Verlet integration, replaces fixed Kepler orbits)
 - Bodies have mass, velocity, and gravitational interactions

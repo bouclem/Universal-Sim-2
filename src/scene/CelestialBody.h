@@ -43,6 +43,7 @@ struct CelestialBody {
     float mass = 1.0f;             // Arbitrary mass units
     bool isStar = false;
     bool isMoon = false;
+    bool markedForRemoval = false;  // Flagged after collision absorption
 
     // Star-specific
     float temperature = 5778.0f;
@@ -75,6 +76,9 @@ struct CelestialBody {
     // Orbit trail: recent positions for visualization
     std::deque<glm::vec3> trail;
     static constexpr size_t MAX_TRAIL_POINTS = 512;
+
+    // Collision flash timer (visual feedback)
+    float collisionFlash = 0.0f;
 };
 
 } // namespace usim

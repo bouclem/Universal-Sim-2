@@ -44,7 +44,6 @@ std::string SolarSystem::generateName(uint32_t seed, bool isStar) {
 
     std::string name = std::string(prefixes[pi]) + middles[mi] + suffixes[si];
 
-    // Stars get a catalog-style suffix
     if (isStar) {
         int num = static_cast<int>(hashFloat(seed, 503) * 900.0f) + 100;
         name += "-" + std::to_string(num);
@@ -70,12 +69,13 @@ void SolarSystem::generate(uint32_t seed) {
     m_star.temperature = starProps.temperature;
     m_star.starColor = starProps.color;
     m_star.luminosity = starProps.luminosity;
-
-    // Star mass: proportional to luminosity (rough main-sequence relation)
     m_star.mass = 500.0f + starProps.luminosity * 200.0f;
 
     // Number of planets: 4 to 8
     int numPlanets = 4 + static_cast<int>(hashFloat(seed, 100) * 5.0f);
+
+    // Track orbital distances for asteroid belt placement
+    std::vector<float> orbitalDistances;
 
     for (int i = 0; i < numPlanets; ++i) {
         auto pp = PlanetGenerator::generate(seed, i, numPlanets);
@@ -92,7 +92,6 @@ void SolarSystem::generate(uint32_t seed) {
         body.colorSecondary = pp.colorSecondary;
         body.colorAccent = pp.colorAccent;
 
-        // Mass based on type and radius
         float r3 = pp.radius * pp.radius * pp.radius;
         switch (pp.type) {
             case PlanetType::Rocky:    body.mass = r3 * 2.0f; break;
@@ -100,14 +99,12 @@ void SolarSystem::generate(uint32_t seed) {
             case PlanetType::IceGiant: body.mass = r3 * 0.8f; break;
         }
 
-        // Orbital parameters (kept for reference)
         body.orbit.semiMajorAxis = pp.orbitalDistance;
         body.orbit.eccentricity = pp.eccentricity;
         body.orbit.inclination = pp.inclination;
         body.orbit.orbitalPeriod = pp.orbitalPeriod;
         body.orbit.startAngle = pp.orbitalAngle;
 
-        // Rings
         body.rings.hasRings = pp.hasRings;
         body.rings.innerRadius = pp.ringInnerRadius;
         body.rings.outerRadius = pp.ringOuterRadius;
@@ -115,18 +112,16 @@ void SolarSystem::generate(uint32_t seed) {
         body.rings.color = pp.ringColor;
         body.rings.noiseSeed = pp.ringNoiseSeed;
 
-        // Atmosphere
         body.atmosphere.hasAtmosphere = pp.hasAtmosphere;
         body.atmosphere.thickness = pp.atmosphereThickness;
         body.atmosphere.color = pp.atmosphereColor;
         body.atmosphere.density = pp.atmosphereDensity;
 
-        // Initial position from Kepler orbit
         body.position = computeOrbitalPosition(body.orbit, 0.0f, m_star.position);
-
-        // Initial velocity for circular orbit (n-body will take over)
         body.velocity = NBodySimulation::circularOrbitalVelocity(
             body.position, m_star.position, m_star.mass);
+
+        orbitalDistances.push_back(pp.orbitalDistance);
 
         // Generate moons
         uint32_t planetSeed = seed ^ (static_cast<uint32_t>(i) * 7919u);
@@ -164,15 +159,48 @@ void SolarSystem::generate(uint32_t seed) {
 
         m_planets.push_back(body);
     }
+
+    // Determine asteroid belt placement: find the largest gap between
+    // rocky and gas/ice planets (like the Mars-Jupiter gap)
+    std::sort(orbitalDistances.begin(), orbitalDistances.end());
+    float maxGap = 0.0f;
+    int gapIndex = -1;
+    for (size_t i = 1; i < orbitalDistances.size(); ++i) {
+        float gap = orbitalDistances[i] - orbitalDistances[i - 1];
+        if (gap > maxGap) {
+            maxGap = gap;
+            gapIndex = static_cast<int>(i);
+        }
+    }
+
+    if (gapIndex > 0 && maxGap > 8.0f) {
+        float gapCenter = (orbitalDistances[static_cast<size_t>(gapIndex - 1)] +
+                           orbitalDistances[static_cast<size_t>(gapIndex)]) * 0.5f;
+        float beltWidth = maxGap * 0.4f;
+        m_asteroidBeltInner = gapCenter - beltWidth * 0.5f;
+        m_asteroidBeltOuter = gapCenter + beltWidth * 0.5f;
+    } else {
+        // Fallback: place belt at 60% of the way out
+        float outerDist = orbitalDistances.empty() ? 50.0f : orbitalDistances.back();
+        m_asteroidBeltInner = outerDist * 0.55f;
+        m_asteroidBeltOuter = outerDist * 0.65f;
+    }
 }
 
 void SolarSystem::update(float deltaTime, float timeScale) {
     float dt = deltaTime * timeScale;
     m_simTime += dt;
 
-    // Gather all bodies for n-body simulation
     auto bodies = allBodiesMut();
     m_physics.step(bodies, dt);
+
+    // Decay collision flash timers
+    for (auto* body : bodies) {
+        if (body->collisionFlash > 0.0f) {
+            body->collisionFlash -= deltaTime;
+            if (body->collisionFlash < 0.0f) body->collisionFlash = 0.0f;
+        }
+    }
 
     // Record trails periodically
     m_trailTimer += dt;
@@ -182,14 +210,76 @@ void SolarSystem::update(float deltaTime, float timeScale) {
     }
 }
 
+int SolarSystem::handleCollisions() {
+    int collisionCount = 0;
+    auto bodies = allBodiesMut();
+
+    // Check all pairs for overlap
+    for (size_t i = 0; i < bodies.size(); ++i) {
+        if (bodies[i]->markedForRemoval) continue;
+
+        for (size_t j = i + 1; j < bodies.size(); ++j) {
+            if (bodies[j]->markedForRemoval) continue;
+
+            float dist = glm::length(bodies[i]->position - bodies[j]->position);
+            float minDist = bodies[i]->radius + bodies[j]->radius;
+
+            if (dist < minDist * 0.8f) {
+                // Collision! Larger body absorbs smaller.
+                CelestialBody* larger = bodies[i];
+                CelestialBody* smaller = bodies[j];
+                if (smaller->mass > larger->mass) {
+                    std::swap(larger, smaller);
+                }
+
+                // Conservation of momentum
+                glm::vec3 totalMomentum = larger->mass * larger->velocity +
+                                          smaller->mass * smaller->velocity;
+                float totalMass = larger->mass + smaller->mass;
+                larger->velocity = totalMomentum / totalMass;
+                larger->mass = totalMass;
+
+                // Grow radius (volume addition)
+                float r1 = larger->radius;
+                float r2 = smaller->radius;
+                larger->radius = std::cbrt(r1 * r1 * r1 + r2 * r2 * r2);
+
+                // Visual feedback
+                larger->collisionFlash = 1.0f;
+
+                // Mark smaller for removal
+                smaller->markedForRemoval = true;
+                collisionCount++;
+            }
+        }
+    }
+
+    // Remove marked bodies
+    if (collisionCount > 0) {
+        // Remove marked moons from planets
+        for (auto& planet : m_planets) {
+            planet.moons.erase(
+                std::remove_if(planet.moons.begin(), planet.moons.end(),
+                    [](const CelestialBody& m) { return m.markedForRemoval; }),
+                planet.moons.end());
+        }
+
+        // Remove marked planets
+        m_planets.erase(
+            std::remove_if(m_planets.begin(), m_planets.end(),
+                [](const CelestialBody& p) { return p.markedForRemoval; }),
+            m_planets.end());
+    }
+
+    return collisionCount;
+}
+
 void SolarSystem::recordTrails() {
-    // Record planet trails
     for (auto& planet : m_planets) {
         planet.trail.push_back(planet.position);
         if (planet.trail.size() > CelestialBody::MAX_TRAIL_POINTS) {
             planet.trail.pop_front();
         }
-        // Moon trails
         for (auto& moon : planet.moons) {
             moon.trail.push_back(moon.position);
             if (moon.trail.size() > CelestialBody::MAX_TRAIL_POINTS) {
@@ -207,15 +297,13 @@ const CelestialBody* SolarSystem::findClosestToRay(const glm::vec3& origin,
 
     auto bodies = allBodies();
     for (const auto* body : bodies) {
-        // Ray-sphere intersection test (approximate: use closest point on ray)
         glm::vec3 oc = body->position - origin;
         float t = glm::dot(oc, direction);
-        if (t < 0.0f) continue; // Behind camera
+        if (t < 0.0f) continue;
 
         glm::vec3 closestPoint = origin + direction * t;
         float dist = glm::length(closestPoint - body->position);
 
-        // Hit if within a generous radius (for selection ease)
         float hitRadius = body->radius * 2.0f;
         if (dist < hitRadius && t < closestDist) {
             closestDist = t;
@@ -223,13 +311,12 @@ const CelestialBody* SolarSystem::findClosestToRay(const glm::vec3& origin,
         }
     }
 
-    // If nothing hit, find the body closest to the ray direction
     if (!closest) {
         float bestAngle = 1e30f;
         for (const auto* body : bodies) {
             glm::vec3 toBody = glm::normalize(body->position - origin);
             float angle = std::acos(std::clamp(glm::dot(toBody, direction), -1.0f, 1.0f));
-            if (angle < bestAngle && angle < 0.15f) { // ~8.5 degree cone
+            if (angle < bestAngle && angle < 0.15f) {
                 bestAngle = angle;
                 closest = body;
             }

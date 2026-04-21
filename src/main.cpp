@@ -5,7 +5,10 @@
 #include "rendering/RingMesh.h"
 #include "rendering/TextRenderer.h"
 #include "rendering/OrbitTrail.h"
+#include "rendering/OrbitPath.h"
+#include "rendering/AsteroidBelt.h"
 #include "scene/SolarSystem.h"
+#include "physics/NBodySimulation.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -70,7 +73,7 @@ std::string fmtFloat(float val, int precision = 1) {
 int main() {
     try {
         // --- Init ---
-        Window window(1280, 720, "Universal Sim 2 - v0.3.0");
+        Window window(1280, 720, "Universal Sim 2 - v0.4.0");
         Camera camera(glm::vec3(0.0f, 10.0f, 60.0f));
         g_camera = &camera;
 
@@ -90,11 +93,19 @@ int main() {
         Mesh skybox = buildSkyboxMesh();
         TextRenderer textRenderer;
         OrbitTrail orbitTrail;
+        OrbitPath orbitPath;
+        AsteroidBelt asteroidBelt;
 
         // --- Generate solar system ---
         SolarSystem solarSystem;
         uint32_t seed = static_cast<uint32_t>(std::time(nullptr));
         solarSystem.generate(seed);
+
+        // Generate asteroid belt
+        asteroidBelt.generate(seed, solarSystem.star().position,
+                              solarSystem.asteroidBeltInner(),
+                              solarSystem.asteroidBeltOuter(),
+                              2000);
 
         std::cout << "Solar system generated (seed: " << seed << ")\n";
         std::cout << "Star: " << solarSystem.star().name
@@ -108,6 +119,7 @@ int main() {
                       << ", rings=" << (p.rings.hasRings ? "yes" : "no")
                       << "\n";
         }
+        std::cout << "Asteroid belt: " << asteroidBelt.count() << " asteroids\n";
 
         // --- State ---
         float deltaTime = 0.0f;
@@ -120,8 +132,12 @@ int main() {
         bool rKeyWasPressed = false;
         bool hKeyWasPressed = false;
         bool tKeyWasPressed = false;
+        bool fKeyWasPressed = false;
+        bool oKeyWasPressed = false;
         bool showHUD = true;
         bool showTrails = true;
+        bool showOrbits = true;
+        const CelestialBody* followTarget = nullptr;
 
         // --- Main loop ---
         while (!window.shouldClose()) {
@@ -133,8 +149,14 @@ int main() {
             // --- Input ---
             window.pollEvents();
 
-            if (glfwGetKey(window.handle(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
-                glfwSetWindowShouldClose(window.handle(), true);
+            if (glfwGetKey(window.handle(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+                if (camera.isFollowing()) {
+                    camera.clearFollowTarget();
+                    followTarget = nullptr;
+                } else {
+                    glfwSetWindowShouldClose(window.handle(), true);
+                }
+            }
 
             // Regenerate with R (toggle-style)
             bool rKeyPressed = glfwGetKey(window.handle(), GLFW_KEY_R) == GLFW_PRESS;
@@ -142,6 +164,12 @@ int main() {
                 seed = static_cast<uint32_t>(std::time(nullptr))
                      ^ static_cast<uint32_t>(totalTime * 1000.0f);
                 solarSystem.generate(seed);
+                asteroidBelt.generate(seed, solarSystem.star().position,
+                                      solarSystem.asteroidBeltInner(),
+                                      solarSystem.asteroidBeltOuter(),
+                                      2000);
+                camera.clearFollowTarget();
+                followTarget = nullptr;
                 std::cout << "Regenerated (seed: " << seed << ")\n";
             }
             rKeyWasPressed = rKeyPressed;
@@ -174,6 +202,34 @@ int main() {
             }
             tKeyWasPressed = tKeyPressed;
 
+            // Toggle orbit prediction with O
+            bool oKeyPressed = glfwGetKey(window.handle(), GLFW_KEY_O) == GLFW_PRESS;
+            if (oKeyPressed && !oKeyWasPressed) {
+                showOrbits = !showOrbits;
+            }
+            oKeyWasPressed = oKeyPressed;
+
+            // Focus/follow with F
+            bool fKeyPressed = glfwGetKey(window.handle(), GLFW_KEY_F) == GLFW_PRESS;
+            if (fKeyPressed && !fKeyWasPressed) {
+                if (camera.isFollowing()) {
+                    camera.clearFollowTarget();
+                    followTarget = nullptr;
+                } else {
+                    // Find selected body and follow it
+                    glm::mat4 tempView = camera.viewMatrix();
+                    glm::vec3 camForward = glm::normalize(
+                        glm::vec3(glm::inverse(tempView) * glm::vec4(0, 0, -1, 0)));
+                    const CelestialBody* sel =
+                        solarSystem.findClosestToRay(camera.position(), camForward);
+                    if (sel) {
+                        followTarget = sel;
+                        camera.setFollowTarget(sel->position, sel->radius);
+                    }
+                }
+            }
+            fKeyWasPressed = fKeyPressed;
+
             // Time scale: + / -
             if (glfwGetKey(window.handle(), GLFW_KEY_EQUAL) == GLFW_PRESS)
                 timeScale = std::min(timeScale + deltaTime * 2.0f, 20.0f);
@@ -182,16 +238,39 @@ int main() {
 
             camera.processKeyboard(window.handle(), deltaTime);
 
+            // --- Update follow camera ---
+            if (followTarget && camera.isFollowing()) {
+                // Re-find the body (pointer may have changed after collision)
+                const CelestialBody* found = nullptr;
+                for (const auto* body : solarSystem.allBodies()) {
+                    if (body->name == followTarget->name) {
+                        found = body;
+                        break;
+                    }
+                }
+                if (found) {
+                    followTarget = found;
+                    camera.updateFollow(found->position, deltaTime);
+                } else {
+                    camera.clearFollowTarget();
+                    followTarget = nullptr;
+                }
+            }
+
             // --- Update physics ---
             if (!paused) {
                 solarSystem.update(deltaTime, timeScale);
+                solarSystem.handleCollisions();
+                asteroidBelt.update(deltaTime, timeScale,
+                                    solarSystem.star().position,
+                                    solarSystem.star().mass,
+                                    NBodySimulation::G);
             }
 
             // --- Find selected body (closest to crosshair) ---
             glm::mat4 view = camera.viewMatrix();
             glm::mat4 projection = camera.projectionMatrix(window.aspectRatio());
 
-            // Camera forward direction
             glm::vec3 camForward = glm::normalize(
                 glm::vec3(glm::inverse(view) * glm::vec4(0, 0, -1, 0)));
             const CelestialBody* selected =
@@ -209,7 +288,36 @@ int main() {
             skybox.draw();
             glDepthFunc(GL_LESS);
 
-            // --- Orbit trails (before solid bodies, with blending) ---
+            // --- Orbit prediction lines ---
+            if (showOrbits) {
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glDepthMask(GL_FALSE);
+
+                for (const auto& planet : solarSystem.planets()) {
+                    glm::vec3 orbitColor(0.2f, 0.4f, 0.6f);
+                    if (planet.planetType == 1) orbitColor = glm::vec3(0.6f, 0.4f, 0.2f);
+                    if (planet.planetType == 2) orbitColor = glm::vec3(0.3f, 0.5f, 0.7f);
+
+                    orbitPath.draw(planet, solarSystem.star().position,
+                                   solarSystem.star().mass,
+                                   NBodySimulation::G,
+                                   orbitColor, view, projection);
+
+                    // Moon orbits
+                    for (const auto& moon : planet.moons) {
+                        orbitPath.draw(moon, planet.position, planet.mass,
+                                       NBodySimulation::G,
+                                       glm::vec3(0.3f, 0.3f, 0.4f),
+                                       view, projection);
+                    }
+                }
+
+                glDepthMask(GL_TRUE);
+                glDisable(GL_BLEND);
+            }
+
+            // --- Orbit trails ---
             if (showTrails) {
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -270,6 +378,11 @@ int main() {
 
                 lodSphere.mesh(lod).draw();
             }
+
+            // --- Asteroid belt ---
+            asteroidBelt.draw(solarSystem.star().position,
+                              solarSystem.star().starColor,
+                              view, projection);
 
             // --- Rings ---
             glEnable(GL_BLEND);
@@ -341,15 +454,23 @@ int main() {
 
                 // Top-left: simulation info
                 textRenderer.renderText(
-                    "Universal Sim 2  v0.3.0", 10, 10, scale,
+                    "Universal Sim 2  v0.4.0", 10, 10, scale,
                     glm::vec3(0.8f, 0.8f, 0.8f), sw, sh);
                 textRenderer.renderText(
                     std::string("Speed: ") + fmtFloat(timeScale, 1) + "x"
                     + (paused ? "  [PAUSED]" : ""),
                     10, 10 + lineH, scale, glm::vec3(0.6f, 0.8f, 1.0f), sw, sh);
                 textRenderer.renderText(
-                    std::string("Bodies: ") + std::to_string(bodies.size()),
+                    std::string("Bodies: ") + std::to_string(bodies.size())
+                    + "  Asteroids: " + std::to_string(asteroidBelt.count()),
                     10, 10 + lineH * 2, scale, glm::vec3(0.6f, 0.8f, 1.0f), sw, sh);
+
+                if (camera.isFollowing()) {
+                    textRenderer.renderText(
+                        "FOLLOWING: " + (followTarget ? followTarget->name : "?"),
+                        10, 10 + lineH * 3, scale,
+                        glm::vec3(1.0f, 0.8f, 0.3f), sw, sh);
+                }
 
                 // Bottom-left: selected body info
                 if (selected) {
@@ -397,12 +518,16 @@ int main() {
                 }
 
                 // Top-right: controls hint
-                float rightX = static_cast<float>(sw) - 280;
+                float rightX = static_cast<float>(sw) - 300;
                 textRenderer.renderText("H: Toggle HUD", rightX, 10, scale,
                     glm::vec3(0.5f, 0.5f, 0.5f), sw, sh);
                 textRenderer.renderText("T: Toggle Trails", rightX, 10 + lineH, scale,
                     glm::vec3(0.5f, 0.5f, 0.5f), sw, sh);
-                textRenderer.renderText("P: Pause  +/-: Speed", rightX, 10 + lineH * 2, scale,
+                textRenderer.renderText("O: Toggle Orbits", rightX, 10 + lineH * 2, scale,
+                    glm::vec3(0.5f, 0.5f, 0.5f), sw, sh);
+                textRenderer.renderText("F: Follow Body", rightX, 10 + lineH * 3, scale,
+                    glm::vec3(0.5f, 0.5f, 0.5f), sw, sh);
+                textRenderer.renderText("P: Pause  +/-: Speed", rightX, 10 + lineH * 4, scale,
                     glm::vec3(0.5f, 0.5f, 0.5f), sw, sh);
 
                 // Crosshair

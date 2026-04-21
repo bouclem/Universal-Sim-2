@@ -52,13 +52,14 @@ std::string SolarSystem::generateName(uint32_t seed, bool isStar) {
     return name;
 }
 
-void SolarSystem::generate(uint32_t seed) {
+void SolarSystem::generate(uint32_t seed, bool binary) {
     m_seed = seed;
     m_simTime = 0.0f;
     m_trailTimer = 0.0f;
     m_planets.clear();
+    m_isBinary = binary;
 
-    // Generate star
+    // Generate primary star
     auto starProps = StarGenerator::generate(seed);
     m_star = CelestialBody{};
     m_star.name = generateName(seed, true);
@@ -70,6 +71,38 @@ void SolarSystem::generate(uint32_t seed) {
     m_star.starColor = starProps.color;
     m_star.luminosity = starProps.luminosity;
     m_star.mass = 500.0f + starProps.luminosity * 200.0f;
+
+    // Generate companion star if binary
+    m_companionStar = CelestialBody{};
+    if (m_isBinary) {
+        uint32_t compSeed = seed ^ 0xDEADBEEFu;
+        auto compProps = StarGenerator::generate(compSeed);
+        m_companionStar.name = generateName(compSeed, true);
+        m_companionStar.isStar = true;
+        m_companionStar.radius = compProps.radius * 0.7f; // Smaller companion
+        m_companionStar.temperature = compProps.temperature;
+        m_companionStar.starColor = compProps.color;
+        m_companionStar.luminosity = compProps.luminosity * 0.5f;
+        m_companionStar.mass = m_star.mass * 0.6f;
+
+        // Binary orbit: place companion at a distance, give orbital velocity
+        float binaryDist = 8.0f + hashFloat(seed, 600) * 6.0f;
+        m_companionStar.position = glm::vec3(binaryDist, 0.0f, 0.0f);
+
+        // Orbital velocities for binary (both orbit the barycenter)
+        float totalMass = m_star.mass + m_companionStar.mass;
+        float starDist = binaryDist * m_companionStar.mass / totalMass;
+        float compDist = binaryDist * m_star.mass / totalMass;
+
+        float orbitalSpeed = std::sqrt(NBodySimulation::G * totalMass / binaryDist);
+        float starSpeed = orbitalSpeed * m_companionStar.mass / totalMass;
+        float compSpeed = orbitalSpeed * m_star.mass / totalMass;
+
+        m_star.position = glm::vec3(-starDist, 0.0f, 0.0f);
+        m_star.velocity = glm::vec3(0.0f, 0.0f, starSpeed);
+        m_companionStar.position = glm::vec3(compDist, 0.0f, 0.0f);
+        m_companionStar.velocity = glm::vec3(0.0f, 0.0f, -compSpeed);
+    }
 
     // Number of planets: 4 to 8
     int numPlanets = 4 + static_cast<int>(hashFloat(seed, 100) * 5.0f);
@@ -361,6 +394,9 @@ glm::vec3 SolarSystem::computeOrbitalPosition(const OrbitalParams& orbit,
 std::vector<const CelestialBody*> SolarSystem::allBodies() const {
     std::vector<const CelestialBody*> bodies;
     bodies.push_back(&m_star);
+    if (m_isBinary) {
+        bodies.push_back(&m_companionStar);
+    }
     for (const auto& p : m_planets) {
         bodies.push_back(&p);
         for (const auto& m : p.moons) {
@@ -373,6 +409,9 @@ std::vector<const CelestialBody*> SolarSystem::allBodies() const {
 std::vector<CelestialBody*> SolarSystem::allBodiesMut() {
     std::vector<CelestialBody*> bodies;
     bodies.push_back(&m_star);
+    if (m_isBinary) {
+        bodies.push_back(&m_companionStar);
+    }
     for (auto& p : m_planets) {
         bodies.push_back(&p);
         for (auto& m : p.moons) {

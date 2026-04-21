@@ -11,7 +11,8 @@ namespace usim {
 class SolarSystem {
 public:
     /// Generate a solar system from a seed.
-    void generate(uint32_t seed);
+    /// If binary is true, generates a binary star system.
+    void generate(uint32_t seed, bool binary = false);
 
     /// Update using n-body physics simulation.
     /// timeScale: 1.0 = normal, 0 = paused, >1 = fast forward
@@ -26,6 +27,9 @@ public:
 
     CelestialBody& star() { return m_star; }
     const CelestialBody& star() const { return m_star; }
+    bool isBinary() const { return m_isBinary; }
+    CelestialBody& companionStar() { return m_companionStar; }
+    const CelestialBody& companionStar() const { return m_companionStar; }
     const std::vector<CelestialBody>& planets() const { return m_planets; }
     std::vector<CelestialBody>& planets() { return m_planets; }
 
@@ -59,6 +63,8 @@ private:
     float m_simTime = 0.0f;
     float m_trailTimer = 0.0f;
     CelestialBody m_star;
+    CelestialBody m_companionStar;  // Binary companion (if any)
+    bool m_isBinary = false;
     std::vector<CelestialBody> m_planets;
     NBodySimulation m_physics;
 

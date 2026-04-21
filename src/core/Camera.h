@@ -6,6 +6,7 @@
 namespace usim {
 
 /// Free-fly camera with WASD + mouse look, plus focus/follow mode.
+/// Movement speed auto-scales based on the current viewing scale.
 class Camera {
 public:
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 50.0f),
@@ -33,10 +34,18 @@ public:
     /// Returns true if in follow mode.
     bool updateFollow(const glm::vec3& target, float deltaTime);
 
+    /// Set the movement speed scale factor (for multi-scale universe).
+    /// 1.0 = solar system, ~100 = star field, ~1000 = galaxy
+    void setSpeedScale(float scale) { m_speedScale = scale; }
+    float speedScale() const { return m_speedScale; }
+
     bool isFollowing() const { return m_following; }
     glm::vec3 position() const { return m_position; }
+    glm::vec3 front() const { return m_front; }
     float nearPlane() const { return m_near; }
     float farPlane() const { return m_far; }
+
+    void setFarPlane(float far) { m_far = far; }
 
 private:
     void updateVectors();
@@ -54,6 +63,9 @@ private:
     float m_fov = 60.0f;
     float m_near = 0.01f;
     float m_far = 100000.0f;
+
+    // Multi-scale speed
+    float m_speedScale = 1.0f;
 
     // Follow mode
     bool m_following = false;

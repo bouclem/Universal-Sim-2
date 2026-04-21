@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.0 - 2026-04-21
+- Multi-scale universe: seamless zoom from galaxy → star field → solar system
+- Procedural spiral galaxy with 3000 stars across 4 spiral arms + core bulge
+- Galaxy view: dust cloud rendering with spiral arm structure, emission nebulae, dust lanes
+- Star field view: individual stars as glowing point sprites with distance-based sizing
+- Solar systems generated on-demand when approaching a star
+- Binary star systems: ~15% of stars have an orbiting companion
+- Camera speed auto-scales with viewing distance (galaxy/star field/solar system)
+- HUD shows current viewing scale, nearest star info in star field view
+- R key regenerates the entire galaxy
+- Escape exits follow mode before quitting
+
 ## v0.4.0 - 2026-04-21
 - Orbit path prediction lines (full Keplerian ellipse from current state, toggle with O)
 - Body focus/follow camera mode (F to lock onto selected body, Escape to exit)

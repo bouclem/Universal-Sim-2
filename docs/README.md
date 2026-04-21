@@ -1,43 +1,39 @@
 # Universal Sim 2
 
-A 3D universal simulation game — sequel to [Universal Sim](https://github.com/bouclem/UNIVERSAL-SIM).
+A 3D procedural space simulation combining ideas from Universe Sandbox² and SpaceEngine.
 
-Built with C# (.NET 6), Silk.NET, and Vulkan.
+## Version 0.1.0
 
-## Requirements
+Simple procedural solar system with:
+- Procedurally generated star (blackbody color from temperature)
+- 4-8 procedurally generated planets (rocky, gas giant, ice giant)
+- LOD icosphere rendering for all celestial bodies
+- Procedural surface coloring via noise (no textures)
+- Background starfield
+- Free-fly camera (WASD + mouse)
 
-- .NET 6 SDK
-- Vulkan-capable GPU + drivers
-- Vulkan SDK (for shader compilation with `glslc`)
+## Build
 
-## Run
+Requires CMake 3.20+ and a C++17 compiler.
 
 ```bash
-dotnet run
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
 ```
 
 ## Controls
 
-- ENTER — Play
-- Q — Quit (from menu)
-- WASD — Move
-- Mouse — Look around
-- Space / Shift — Up / Down
-- ESC — Unlock cursor / Back to menu
+- WASD - Move
+- Mouse - Look around
+- Space / Ctrl - Up / Down
+- Shift - Move faster
+- Scroll - Adjust speed
+- R - Regenerate solar system
+- Escape - Quit
 
-## Project Structure
+## Dependencies
 
-```
-Program.cs                          — Entry point
-src/Game.cs                         — Window + game loop
-src/MainMenu.cs                     — Menu state
-src/GameScene.cs                    — 3D scene
-src/objects/                        — Game objects
-src/rendering/VulkanEngine.cs       — Vulkan renderer
-src/rendering/Camera.cs             — Free camera
-src/rendering/MeshGenerator.cs      — Sphere mesh generation
-src/rendering/ShaderHelper.cs       — SPIR-V shader loading
-src/shaders/                        — GLSL + compiled SPIR-V
-src/assets/                         — Icons, images
-docs/                               — Documentation
-```
+All fetched automatically via CMake FetchContent:
+- GLFW 3.4
+- GLM 1.0.1
+- GLAD 2.0.8 (OpenGL 4.1 core)

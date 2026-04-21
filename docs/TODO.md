@@ -1,11 +1,19 @@
-# TODO — Universal Sim 2
+# TODO
 
-## Planned
-- [ ] In-game 2D text overlay (font atlas pipeline for Vulkan)
-- [ ] Visual main menu rendered in-game (not console)
-- [ ] More star types and cosmic objects
-- [ ] Universe generation
-- [ ] Physics / gravity simulation
-- [ ] Depth buffer for proper 3D occlusion
-- [ ] Multiple objects in scene
-- [ ] Settings menu (resolution, controls)
+## v0.2.0 (planned)
+- Orbital mechanics / animation
+- Moons
+- Planetary rings
+- Atmosphere rendering (scattering)
+
+## v0.3.0 (planned)
+- Physics simulation (gravity)
+- Time controls (pause, speed up, slow down)
+- UI overlay (HUD with body info)
+
+## Future
+- Multiple star systems
+- Galaxy-scale view
+- Procedural terrain detail on planet surface
+- Collision simulation
+- Sound

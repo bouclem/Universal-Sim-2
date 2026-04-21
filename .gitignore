@@ -1,27 +1,31 @@
-## .NET / C#
-bin/
-obj/
-*.dll
-*.exe
-*.pdb
-*.user
-*.suo
-*.cache
-*.log
+# Build
+build/
+out/
+cmake-build-*/
 
-## IDE
+# IDE
 .vs/
 .vscode/
+.idea/
+*.suo
+*.user
 *.sln.docstates
 
-## OS
+# Compiled
+*.exe
+*.dll
+*.lib
+*.obj
+*.o
+*.a
+*.pdb
+*.ilk
+*.exp
+
+# OS
 Thumbs.db
 Desktop.ini
 .DS_Store
 
-## NuGet
-*.nupkg
-project.lock.json
-
-## Compiled shaders (regenerate with glslc)
-src/shaders/*.spv
+# Dependencies (fetched by CMake)
+extern/

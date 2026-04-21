@@ -107,6 +107,7 @@ int main() {
         float timeScale = 1.0f;
         bool paused = false;
         bool pKeyWasPressed = false;
+        bool f11WasPressed = false;
 
         // --- Main loop ---
         while (!window.shouldClose()) {
@@ -136,6 +137,13 @@ int main() {
                 std::cout << (paused ? "Paused" : "Resumed") << "\n";
             }
             pKeyWasPressed = pKeyPressed;
+
+            // Fullscreen toggle with F11
+            bool f11Pressed = glfwGetKey(window.handle(), GLFW_KEY_F11) == GLFW_PRESS;
+            if (f11Pressed && !f11WasPressed) {
+                window.toggleFullscreen();
+            }
+            f11WasPressed = f11Pressed;
 
             // Time scale: + / - keys
             if (glfwGetKey(window.handle(), GLFW_KEY_EQUAL) == GLFW_PRESS)

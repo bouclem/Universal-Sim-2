@@ -28,10 +28,20 @@ public:
     /// Callback fired on resize.
     void setResizeCallback(std::function<void(int, int)> cb);
 
+    /// Toggle between windowed and borderless fullscreen.
+    void toggleFullscreen();
+    bool isFullscreen() const { return m_fullscreen; }
+
 private:
     GLFWwindow* m_window = nullptr;
     int m_width;
     int m_height;
+    bool m_fullscreen = false;
+    // Saved windowed position/size for restoring from fullscreen
+    int m_windowedX = 0;
+    int m_windowedY = 0;
+    int m_windowedW = 0;
+    int m_windowedH = 0;
     std::function<void(int, int)> m_resizeCallback;
 
     static void framebufferSizeCallback(GLFWwindow* win, int w, int h);

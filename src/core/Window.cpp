@@ -41,6 +41,11 @@ Window::Window(int width, int height, const std::string& title)
     // Capture mouse for camera control
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
+    // Store initial windowed geometry for fullscreen toggle
+    m_windowedW = width;
+    m_windowedH = height;
+    glfwGetWindowPos(m_window, &m_windowedX, &m_windowedY);
+
     std::cout << "OpenGL " << GLAD_VERSION_MAJOR(version) << "."
               << GLAD_VERSION_MINOR(version) << " initialized\n";
 }
@@ -83,6 +88,26 @@ void Window::framebufferSizeCallback(GLFWwindow* win, int w, int h) {
             self->m_resizeCallback(w, h);
         }
     }
+}
+
+void Window::toggleFullscreen() {
+    if (!m_fullscreen) {
+        // Save current windowed position and size
+        glfwGetWindowPos(m_window, &m_windowedX, &m_windowedY);
+        glfwGetWindowSize(m_window, &m_windowedW, &m_windowedH);
+
+        // Switch to fullscreen on the current monitor
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        glfwSetWindowMonitor(m_window, monitor, 0, 0,
+                             mode->width, mode->height, mode->refreshRate);
+    } else {
+        // Restore windowed mode
+        glfwSetWindowMonitor(m_window, nullptr,
+                             m_windowedX, m_windowedY,
+                             m_windowedW, m_windowedH, 0);
+    }
+    m_fullscreen = !m_fullscreen;
 }
 
 } // namespace usim

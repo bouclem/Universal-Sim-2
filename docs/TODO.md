@@ -1,15 +1,10 @@
 # TODO
 
-## v0.2.0 (planned)
-- Orbital mechanics / animation
-- Moons
-- Planetary rings
-- Atmosphere rendering (scattering)
-
 ## v0.3.0 (planned)
-- Physics simulation (gravity)
-- Time controls (pause, speed up, slow down)
-- UI overlay (HUD with body info)
+- Physics simulation (gravity, n-body)
+- Time controls UI overlay
+- HUD with body info (name, type, mass, distance)
+- Orbit path visualization (trail lines)
 
 ## Future
 - Multiple star systems
@@ -17,3 +12,6 @@
 - Procedural terrain detail on planet surface
 - Collision simulation
 - Sound
+- Binary star systems
+- Asteroid belts
+- Comet trails

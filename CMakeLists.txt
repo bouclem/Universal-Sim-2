@@ -39,7 +39,13 @@ file(GLOB_RECURSE SOURCES
     src/*.cpp
 )
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+# Windows application icon
+if(WIN32)
+    configure_file(${CMAKE_SOURCE_DIR}/icon.ico ${CMAKE_BINARY_DIR}/icon.ico COPYONLY)
+    set(WIN_RESOURCES ${CMAKE_SOURCE_DIR}/src/app.rc)
+endif()
+
+add_executable(${PROJECT_NAME} ${SOURCES} ${WIN_RESOURCES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/src

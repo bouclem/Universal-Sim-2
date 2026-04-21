@@ -75,27 +75,103 @@ PlanetProperties PlanetGenerator::generate(uint32_t seed, int index,
     planet.noiseScale = 1.0f + hashFloat(planetSeed, 5) * 4.0f;
     planet.noiseSeed = hashFloat(planetSeed, 6) * 1000.0f;
 
-    // Colors based on planet type
+    // --- Orbital mechanics (v0.2.0) ---
+    // Eccentricity: mostly low, occasional higher
+    planet.eccentricity = hashFloat(planetSeed, 20) * 0.15f;
+    // Inclination: small tilt from ecliptic
+    planet.inclination = (hashFloat(planetSeed, 21) - 0.5f) * 0.15f;
+    // Orbital period: Kepler's 3rd law (T^2 ∝ a^3), scaled for gameplay
+    float distAU = planet.orbitalDistance / 15.0f; // normalize
+    planet.orbitalPeriod = 15.0f * std::pow(distAU, 1.5f);
+
+    // --- Rings (v0.2.0) ---
+    float ringRoll = hashFloat(planetSeed, 30);
+    switch (planet.type) {
+        case PlanetType::GasGiant:
+            planet.hasRings = (ringRoll > 0.4f); // 60% chance
+            break;
+        case PlanetType::IceGiant:
+            planet.hasRings = (ringRoll > 0.7f); // 30% chance
+            break;
+        case PlanetType::Rocky:
+            planet.hasRings = false;
+            break;
+    }
+    if (planet.hasRings) {
+        planet.ringInnerRadius = 1.3f + hashFloat(planetSeed, 31) * 0.3f;
+        planet.ringOuterRadius = planet.ringInnerRadius + 0.5f + hashFloat(planetSeed, 32) * 1.0f;
+        planet.ringOpacity = 0.3f + hashFloat(planetSeed, 33) * 0.5f;
+        float ringHue = hashFloat(planetSeed, 34) * 50.0f + 20.0f; // warm tones
+        planet.ringColor = hsvToRgb(ringHue, 0.2f + hashFloat(planetSeed, 35) * 0.2f,
+                                    0.6f + hashFloat(planetSeed, 36) * 0.3f);
+        planet.ringNoiseSeed = hashFloat(planetSeed, 37) * 1000.0f;
+    } else {
+        planet.ringInnerRadius = 0.0f;
+        planet.ringOuterRadius = 0.0f;
+        planet.ringOpacity = 0.0f;
+        planet.ringColor = glm::vec3(0.0f);
+        planet.ringNoiseSeed = 0.0f;
+    }
+
+    // --- Atmosphere (v0.2.0) ---
+    float atmoRoll = hashFloat(planetSeed, 40);
+    switch (planet.type) {
+        case PlanetType::Rocky:
+            planet.hasAtmosphere = (atmoRoll > 0.5f); // 50% chance
+            if (planet.hasAtmosphere) {
+                planet.atmosphereThickness = 0.05f + hashFloat(planetSeed, 41) * 0.1f;
+                // Thin, could be reddish (Mars-like) or bluish (Earth-like)
+                float atmoHue = hashFloat(planetSeed, 42) > 0.5f ? 210.0f : 15.0f;
+                planet.atmosphereColor = hsvToRgb(atmoHue, 0.5f, 0.8f);
+                planet.atmosphereDensity = 0.2f + hashFloat(planetSeed, 43) * 0.3f;
+            }
+            break;
+        case PlanetType::GasGiant:
+            planet.hasAtmosphere = true;
+            planet.atmosphereThickness = 0.1f + hashFloat(planetSeed, 41) * 0.15f;
+            planet.atmosphereColor = hsvToRgb(30.0f + hashFloat(planetSeed, 42) * 30.0f,
+                                              0.3f, 0.9f);
+            planet.atmosphereDensity = 0.5f + hashFloat(planetSeed, 43) * 0.3f;
+            break;
+        case PlanetType::IceGiant:
+            planet.hasAtmosphere = true;
+            planet.atmosphereThickness = 0.08f + hashFloat(planetSeed, 41) * 0.12f;
+            planet.atmosphereColor = hsvToRgb(200.0f + hashFloat(planetSeed, 42) * 40.0f,
+                                              0.4f, 0.85f);
+            planet.atmosphereDensity = 0.4f + hashFloat(planetSeed, 43) * 0.3f;
+            break;
+    }
+    if (!planet.hasAtmosphere) {
+        planet.atmosphereThickness = 0.0f;
+        planet.atmosphereColor = glm::vec3(0.0f);
+        planet.atmosphereDensity = 0.0f;
+    }
+
+    // Colors based on planet type (unchanged from v0.1.0)
     switch (planet.type) {
         case PlanetType::Rocky: {
-            float hue = hashFloat(planetSeed, 10) * 60.0f; // browns/reds/oranges
-            planet.colorPrimary = hsvToRgb(hue, 0.4f + hashFloat(planetSeed, 11) * 0.3f, 0.4f + hashFloat(planetSeed, 12) * 0.3f);
-            planet.colorSecondary = hsvToRgb(hue + 20.0f, 0.3f, 0.6f + hashFloat(planetSeed, 13) * 0.2f);
-            // Accent: could be ice caps or oceans
+            float hue = hashFloat(planetSeed, 10) * 60.0f;
+            planet.colorPrimary = hsvToRgb(hue, 0.4f + hashFloat(planetSeed, 11) * 0.3f,
+                                           0.4f + hashFloat(planetSeed, 12) * 0.3f);
+            planet.colorSecondary = hsvToRgb(hue + 20.0f, 0.3f,
+                                             0.6f + hashFloat(planetSeed, 13) * 0.2f);
             float accentHue = hashFloat(planetSeed, 14) > 0.5f ? 210.0f : 30.0f;
             planet.colorAccent = hsvToRgb(accentHue, 0.5f, 0.7f);
             break;
         }
         case PlanetType::GasGiant: {
-            float hue = 20.0f + hashFloat(planetSeed, 10) * 40.0f; // oranges/yellows
-            planet.colorPrimary = hsvToRgb(hue, 0.6f, 0.7f + hashFloat(planetSeed, 11) * 0.2f);
-            planet.colorSecondary = hsvToRgb(hue + 15.0f, 0.5f, 0.5f + hashFloat(planetSeed, 12) * 0.3f);
+            float hue = 20.0f + hashFloat(planetSeed, 10) * 40.0f;
+            planet.colorPrimary = hsvToRgb(hue, 0.6f,
+                                           0.7f + hashFloat(planetSeed, 11) * 0.2f);
+            planet.colorSecondary = hsvToRgb(hue + 15.0f, 0.5f,
+                                             0.5f + hashFloat(planetSeed, 12) * 0.3f);
             planet.colorAccent = hsvToRgb(hue - 10.0f, 0.7f, 0.8f);
             break;
         }
         case PlanetType::IceGiant: {
-            float hue = 180.0f + hashFloat(planetSeed, 10) * 60.0f; // cyans/blues
-            planet.colorPrimary = hsvToRgb(hue, 0.4f + hashFloat(planetSeed, 11) * 0.3f, 0.6f + hashFloat(planetSeed, 12) * 0.2f);
+            float hue = 180.0f + hashFloat(planetSeed, 10) * 60.0f;
+            planet.colorPrimary = hsvToRgb(hue, 0.4f + hashFloat(planetSeed, 11) * 0.3f,
+                                           0.6f + hashFloat(planetSeed, 12) * 0.2f);
             planet.colorSecondary = hsvToRgb(hue + 20.0f, 0.3f, 0.7f);
             planet.colorAccent = hsvToRgb(hue - 20.0f, 0.5f, 0.8f);
             break;

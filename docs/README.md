@@ -2,19 +2,18 @@
 
 A 3D procedural space simulation combining ideas from Universe Sandbox² and SpaceEngine.
 
-## Version 0.2.0
+## Version 0.3.0
 
-Procedural solar system with:
-- Procedurally generated star (blackbody color from temperature)
-- 4-8 procedurally generated planets (rocky, gas giant, ice giant)
-- Procedurally generated moons (0-5 per planet)
-- Planetary rings on gas/ice giants with procedural bands and gaps
-- Atmosphere rendering with Fresnel rim glow and scattering
-- Orbital mechanics: Keplerian ellipses with eccentricity and inclination
+Procedural space simulation with:
+- N-body gravitational physics (Velocity Verlet)
+- Procedurally generated star with name, mass, granulation, sunspots
+- 4-8 planets with procedural names, masses, and improved surface detail
+- Moons, planetary rings, and atmospheres
+- HUD overlay: selected body info, simulation speed, controls
+- Orbit trail visualization
 - LOD icosphere rendering for all celestial bodies
-- Procedural surface coloring via noise (no textures)
-- Background starfield
-- Free-fly camera (WASD + mouse)
+- Domain-warped noise, ridged mountains, Voronoi craters (no textures)
+- Free-fly camera with crosshair selection
 
 ## Build
 
@@ -33,8 +32,11 @@ cmake --build build --config Release
 - Shift - Move faster
 - Scroll - Adjust speed
 - R - Regenerate solar system
-- P - Pause / Resume orbits
+- P - Pause / Resume simulation
 - +/- - Speed up / slow down simulation
+- H - Toggle HUD overlay
+- T - Toggle orbit trails
+- F11 - Toggle fullscreen
 - Escape - Quit
 
 ## Dependencies

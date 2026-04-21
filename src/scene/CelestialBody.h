@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 #include <vector>
+#include <string>
+#include <deque>
 
 namespace usim {
 
@@ -34,8 +36,11 @@ struct AtmosphereParams {
 
 /// Base data for any celestial body (star, planet, or moon).
 struct CelestialBody {
+    std::string name;
     glm::vec3 position = glm::vec3(0.0f);
+    glm::vec3 velocity = glm::vec3(0.0f);
     float radius = 1.0f;
+    float mass = 1.0f;             // Arbitrary mass units
     bool isStar = false;
     bool isMoon = false;
 
@@ -52,7 +57,7 @@ struct CelestialBody {
     glm::vec3 colorSecondary = glm::vec3(0.3f);
     glm::vec3 colorAccent = glm::vec3(0.7f);
 
-    // Orbital mechanics
+    // Orbital mechanics (used for initial placement)
     OrbitalParams orbit;
 
     // Rings (planets only)
@@ -66,6 +71,10 @@ struct CelestialBody {
 
     // Index of parent planet in the planets array (-1 for star/planets)
     int parentIndex = -1;
+
+    // Orbit trail: recent positions for visualization
+    std::deque<glm::vec3> trail;
+    static constexpr size_t MAX_TRAIL_POINTS = 512;
 };
 
 } // namespace usim

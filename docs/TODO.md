@@ -1,17 +1,16 @@
 # TODO
 
-## v0.3.0 (planned)
-- Physics simulation (gravity, n-body)
-- Time controls UI overlay
-- HUD with body info (name, type, mass, distance)
-- Orbit path visualization (trail lines)
+## v0.4.0 (planned)
+- Orbit path prediction lines (full ellipse preview)
+- Body focus/follow camera mode (lock onto a planet)
+- Collision detection and response
+- Asteroid belts
 
 ## Future
-- Multiple star systems
-- Galaxy-scale view
-- Procedural terrain detail on planet surface
-- Collision simulation
-- Sound
-- Binary star systems
-- Asteroid belts
-- Comet trails
+- Multiple star systems / binary stars
+- Galaxy-scale view with seamless zoom
+- Procedural terrain detail on planet surface (close-up LOD)
+- Sound (ambient, engine, collisions)
+- Comet trails with particle effects
+- Save/load system state
+- UI panels (ImGui or custom)

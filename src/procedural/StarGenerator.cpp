@@ -38,6 +38,9 @@ StarProperties StarGenerator::generate(uint32_t seed) {
     float radiusRatio = star.radius / 5.0f;
     star.luminosity = radiusRatio * radiusRatio * std::pow(tempRatio, 4.0f);
 
+    // Mass: rough main-sequence relation
+    star.mass = 500.0f + star.luminosity * 200.0f;
+
     star.color = blackbodyColor(star.temperature);
 
     return star;

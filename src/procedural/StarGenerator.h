@@ -10,6 +10,7 @@ struct StarProperties {
     float temperature;   // Kelvin (2000 - 40000)
     float radius;        // Arbitrary units
     float luminosity;    // Relative brightness
+    float mass;          // Arbitrary mass units
     glm::vec3 color;     // RGB from blackbody approximation
 };
 

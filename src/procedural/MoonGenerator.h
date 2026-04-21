@@ -19,6 +19,10 @@ struct MoonProperties {
     glm::vec3 colorPrimary;
     glm::vec3 colorSecondary;
     glm::vec3 colorAccent;
+
+    // v0.6.0: rotation
+    float rotationSpeed;
+    float axialTilt;
 };
 
 /// Generates moon properties for a given planet.

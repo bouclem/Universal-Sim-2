@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.6.0 - 2026-04-21
+- Realistic size ratios: stars ~100x rocky planets, ~10x gas giants, wider orbital spacing
+- LOD system upgraded from 6 to 8 levels (LOD 7 = 327K triangles for close-up detail)
+- Planetary rotation and axial tilt with visible surface spin
+- Massively upgraded procedural textures:
+  - Rocky planets: tectonic plate boundaries with rift valleys, hydraulic erosion noise, volcanic hotspots with lava glow (night-side visible), river-like erosion channels, expanded biome system (desert, savanna, grassland, forest, rainforest, wetland, steppe, tundra, boreal), layered rock strata, patchy wind-exposed snow, continental shelf ocean coloring, wave patterns, multi-scale impact craters, sand dune patterns, smarter city light placement near coasts and temperate zones
+  - Gas giants: 4-tier banding (added ultra-fine bands), jet streams at band boundaries, ammonia crystal cloud tops, 5 storm vortices with varied sizes, multi-layer Great Spot swirling with bright ring, lightning flash spots in deep storms, finer atmospheric grain
+  - Ice giants: wind shear patterns at different altitudes, multiple methane haze layers, cirrus-like streaks, secondary dark spot, aurora bands at poles, more micro-detail
+  - Stars: 3-scale granulation (supergranulation + primary + fine), sunspot penumbra radial filaments, magnetic field-aligned bright loops, solar prominences at the limb, structured corona with streamers, stronger wavelength-dependent limb darkening
+- Multi-scale bump mapping with tectonic plate boundary detail
+- Subtle cloud-top bump mapping for gas giants
+- Erosion noise function simulating hydraulic erosion
+- Crackle noise (Voronoi F2-F1) for tectonic plate boundaries
+- Triple domain warping for extreme organic terrain distortion
+- Gravitational constant retuned for new mass/distance scales
+- Wider system enter/exit thresholds for larger solar systems
+- Generous selection hit radius for small bodies
+
 ## v0.5.0 - 2026-04-21
 - Multi-scale universe: seamless zoom from galaxy → star field → solar system
 - Procedural spiral galaxy with 3000 stars across 4 spiral arms + core bulge

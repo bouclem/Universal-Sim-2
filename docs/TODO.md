@@ -1,16 +1,16 @@
 # TODO
 
-## v0.6.0 (planned)
-- Procedural terrain detail on planet surface (close-up LOD)
+## v0.7.0 (planned)
 - Comet trails with particle effects
 - Sound (ambient, engine, collisions)
-- Planetary rotation and axial tilt
+- Tidal locking for close moons
+- Cloud layer rendering (separate transparent shell for rocky planets)
+- Terrain displacement in vertex shader for actual surface relief
 
 ## Future
 - Save/load system state
 - UI panels (ImGui or custom)
 - Volumetric atmosphere rendering
-- Tidal locking for close moons
 - Accretion disk effects during collisions
 - Gas/dust cloud particle effects
 - Galaxy collision simulation

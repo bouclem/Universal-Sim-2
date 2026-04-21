@@ -41,6 +41,10 @@ struct PlanetProperties {
     float atmosphereThickness; // Multiplier of planet radius
     glm::vec3 atmosphereColor;
     float atmosphereDensity;
+
+    // v0.6.0: rotation
+    float rotationSpeed;       // Radians per second
+    float axialTilt;           // Radians, tilt of rotation axis
 };
 
 /// Generates planet properties from a seed and orbital index.

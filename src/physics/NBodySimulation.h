@@ -8,8 +8,8 @@ namespace usim {
 /// N-body gravitational simulation using Velocity Verlet integration.
 class NBodySimulation {
 public:
-    /// Gravitational constant (tuned for game scale, not SI).
-    static constexpr float G = 40.0f;
+    /// Gravitational constant (v0.6.0: tuned for larger masses and wider orbits).
+    static constexpr float G = 20.0f;
 
     /// Advance the simulation by deltaTime seconds.
     /// Operates on a flat list of body pointers for simplicity.

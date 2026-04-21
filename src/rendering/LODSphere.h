@@ -9,11 +9,11 @@
 namespace usim {
 
 /// Generates icosphere meshes at multiple LOD levels.
-/// LOD 0 = lowest detail (icosahedron), LOD 5 = highest detail.
+/// LOD 0 = lowest detail (icosahedron), LOD 7 = highest detail.
 /// Picks the right LOD based on screen-space projected size.
 class LODSphere {
 public:
-    static constexpr int MAX_LOD = 5;
+    static constexpr int MAX_LOD = 7;
     static constexpr int LOD_COUNT = MAX_LOD + 1;
 
     LODSphere();

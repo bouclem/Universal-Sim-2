@@ -36,7 +36,7 @@ void Camera::processKeyboard(GLFWwindow* window, float deltaTime) {
             m_followPitch = std::max(m_followPitch - orbitSpeed, -89.0f);
 
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-            m_followDistance = std::max(m_followDistance - m_followDistance * deltaTime, 0.5f);
+            m_followDistance = std::max(m_followDistance - m_followDistance * deltaTime, 0.05f);
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
             m_followDistance += m_followDistance * deltaTime;
 
@@ -84,7 +84,7 @@ void Camera::processMouseMovement(float xOffset, float yOffset) {
 void Camera::processScroll(float yOffset) {
     if (m_following) {
         m_followDistance -= yOffset * m_followDistance * 0.1f;
-        m_followDistance = std::clamp(m_followDistance, 0.5f, 10000.0f);
+        m_followDistance = std::clamp(m_followDistance, 0.05f, 10000.0f);
         return;
     }
 

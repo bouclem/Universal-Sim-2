@@ -68,9 +68,9 @@ public:
     float radius() const { return m_radius; }
     uint32_t seed() const { return m_seed; }
 
-    /// Threshold distances for scale transitions.
-    static constexpr float SYSTEM_ENTER_DIST = 300.0f;   // Enter solar system view
-    static constexpr float SYSTEM_EXIT_DIST = 400.0f;    // Exit solar system view
+    /// Threshold distances for scale transitions (v0.6.0: wider systems).
+    static constexpr float SYSTEM_ENTER_DIST = 400.0f;   // Enter solar system view
+    static constexpr float SYSTEM_EXIT_DIST = 500.0f;    // Exit solar system view
     static constexpr float GALAXY_VIEW_DIST = 8000.0f;   // Switch to galaxy overview
 
 private:

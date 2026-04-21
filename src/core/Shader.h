@@ -20,6 +20,7 @@ public:
 
     // Uniform setters
     void setMat4(const std::string& name, const glm::mat4& mat) const;
+    void setMat3(const std::string& name, const glm::mat3& mat) const;
     void setVec3(const std::string& name, const glm::vec3& v) const;
     void setFloat(const std::string& name, float val) const;
     void setInt(const std::string& name, int val) const;

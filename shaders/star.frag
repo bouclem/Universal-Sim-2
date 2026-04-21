@@ -83,81 +83,141 @@ vec3 voronoi(vec3 p) {
     return vec3(sqrt(f1), sqrt(f2), f2 - f1);
 }
 
+// Ridged noise for magnetic field lines
+float ridgedNoise(vec3 p, int octaves) {
+    float value = 0.0;
+    float amplitude = 0.5;
+    float frequency = 1.0;
+    float prev = 1.0;
+    for (int i = 0; i < octaves; i++) {
+        float n = 1.0 - abs(gradientNoise(p * frequency));
+        n = n * n;
+        value += n * amplitude * prev;
+        prev = n;
+        frequency *= 2.1;
+        amplitude *= 0.5;
+    }
+    return value;
+}
+
 void main() {
     vec3 normal = normalize(vNormal);
     vec3 viewDir = normalize(uCameraPos - vWorldPos);
 
     float slowTime = uTime * 0.025;
     float fastTime = uTime * 0.06;
+    float verySlowTime = uTime * 0.008;
 
-    // Granulation: convection cells (animated Voronoi)
-    vec3 granCoord = normal * 10.0;
+    // === Granulation: multi-scale convection cells ===
+    // Large-scale supergranulation
+    vec3 superGranCoord = normal * 4.0 + verySlowTime * 0.3;
+    vec3 superGran = voronoi(superGranCoord);
+    float superGranEdge = smoothstep(0.0, 0.12, superGran.z);
+
+    // Medium granulation (primary convection cells)
+    vec3 granCoord = normal * 12.0 + slowTime * 0.2;
     vec3 gran = voronoi(granCoord);
     float granulation = gran.x;
-    float granEdge = smoothstep(0.0, 0.15, gran.z); // Cell boundaries
+    float granEdge = smoothstep(0.0, 0.15, gran.z);
 
-    // Multi-scale turbulence
-    float turb1 = fbmNorm(normal * 3.0 + slowTime, 6);
-    float turb2 = fbmNorm(normal * 6.0 + slowTime * 1.3, 5);
-    float turbulence = turb1 * 0.6 + turb2 * 0.4;
+    // Fine granulation (visible at high LOD)
+    vec3 fineGranCoord = normal * 30.0 + slowTime * 0.4;
+    vec3 fineGran = voronoi(fineGranCoord);
+    float fineGranEdge = smoothstep(0.0, 0.12, fineGran.z);
 
-    // Sunspots: dark cooler regions with penumbra
-    float spotNoise = fbmNorm(normal * 2.5 + vec3(slowTime * 0.4), 5);
-    float umbra = smoothstep(0.72, 0.78, spotNoise);
-    float penumbra = smoothstep(0.65, 0.72, spotNoise) * (1.0 - umbra);
+    // Combined granulation
+    float combinedGran = superGranEdge * 0.3 + granEdge * 0.5 + fineGranEdge * 0.2;
 
-    // Solar flares / bright plage regions
-    float flareNoise = fbmNorm(normal * 5.0 + vec3(fastTime), 6);
+    // === Multi-scale turbulence ===
+    float turb1 = fbmNorm(normal * 3.0 + slowTime, 7);
+    float turb2 = fbmNorm(normal * 7.0 + slowTime * 1.3, 6);
+    float turb3 = fbmNorm(normal * 15.0 + slowTime * 1.8, 5);
+    float turbulence = turb1 * 0.5 + turb2 * 0.3 + turb3 * 0.2;
+
+    // === Sunspots with more structure ===
+    float spotNoise = fbmNorm(normal * 2.5 + vec3(slowTime * 0.3), 6);
+    float umbra = smoothstep(0.73, 0.80, spotNoise);
+    float penumbra = smoothstep(0.64, 0.73, spotNoise) * (1.0 - umbra);
+
+    // Penumbra radial filaments
+    float penumbraDetail = fbmNorm(normal * 20.0 + vec3(slowTime * 0.5), 5);
+    float filaments = smoothstep(0.3, 0.7, penumbraDetail);
+    penumbra *= (0.7 + filaments * 0.3);
+
+    // === Solar flares / bright plage regions ===
+    float flareNoise = fbmNorm(normal * 5.0 + vec3(fastTime), 7);
     float flares = smoothstep(0.72, 0.92, flareNoise);
 
-    // Faculae: bright regions near sunspots
-    float faculae = smoothstep(0.60, 0.65, spotNoise) * (1.0 - smoothstep(0.65, 0.72, spotNoise));
+    // === Faculae: bright regions near sunspots ===
+    float faculae = smoothstep(0.58, 0.64, spotNoise) * (1.0 - smoothstep(0.64, 0.73, spotNoise));
 
-    // Base color with granulation texture
-    vec3 hotColor = uStarColor * 1.1;
-    vec3 coolColor = uStarColor * 0.85;
-    vec3 color = mix(coolColor, hotColor, granEdge);
+    // === Magnetic field-aligned bright loops ===
+    float magField = ridgedNoise(normal * 3.0 + vec3(verySlowTime), 5);
+    float magLoops = smoothstep(0.5, 0.7, magField) * smoothstep(0.73, 0.65, spotNoise);
+
+    // === Base color with granulation texture ===
+    vec3 hotColor = uStarColor * 1.12;
+    vec3 coolColor = uStarColor * 0.82;
+    vec3 color = mix(coolColor, hotColor, combinedGran);
 
     // Granulation cell brightness variation
-    color *= (0.88 + granulation * 0.2);
+    color *= (0.86 + granulation * 0.22);
+
+    // Supergranulation subtle variation
+    color *= (0.96 + superGranEdge * 0.08);
 
     // Turbulence variation
-    color *= (0.92 + turbulence * 0.16);
+    color *= (0.90 + turbulence * 0.18);
 
-    // Sunspot umbra: very dark, reddish
-    vec3 umbraColor = uStarColor * 0.25 * vec3(1.0, 0.5, 0.2);
-    color = mix(color, umbraColor, umbra * 0.85);
+    // === Sunspot umbra: very dark, reddish ===
+    vec3 umbraColor = uStarColor * 0.20 * vec3(1.0, 0.45, 0.15);
+    color = mix(color, umbraColor, umbra * 0.88);
 
-    // Sunspot penumbra: intermediate, radial structure
-    vec3 penumbraColor = uStarColor * 0.55 * vec3(1.0, 0.7, 0.4);
-    color = mix(color, penumbraColor, penumbra * 0.6);
+    // === Sunspot penumbra: intermediate, radial structure ===
+    vec3 penumbraColor = uStarColor * 0.50 * vec3(1.0, 0.65, 0.35);
+    color = mix(color, penumbraColor, penumbra * 0.65);
 
-    // Faculae: bright regions
-    color = mix(color, uStarColor * 1.3, faculae * 0.3);
+    // === Faculae: bright regions ===
+    color = mix(color, uStarColor * 1.35, faculae * 0.35);
 
-    // Bright flare regions
-    vec3 flareColor = uStarColor * 1.6 + vec3(0.15, 0.08, 0.0);
-    color = mix(color, flareColor, flares * 0.35);
+    // === Magnetic loops: subtle bright arcs ===
+    color = mix(color, uStarColor * 1.25, magLoops * 0.15);
 
-    // Limb darkening: wavelength-dependent (more darkening in blue)
+    // === Bright flare regions ===
+    vec3 flareColor = uStarColor * 1.7 + vec3(0.18, 0.10, 0.0);
+    color = mix(color, flareColor, flares * 0.38);
+
+    // === Limb darkening: wavelength-dependent ===
     float cosTheta = max(dot(normal, viewDir), 0.0);
-    float limbR = 0.3 + 0.7 * pow(cosTheta, 0.5);
-    float limbG = 0.25 + 0.75 * pow(cosTheta, 0.7);
-    float limbB = 0.2 + 0.8 * pow(cosTheta, 1.0);
+    float limbR = 0.28 + 0.72 * pow(cosTheta, 0.45);
+    float limbG = 0.22 + 0.78 * pow(cosTheta, 0.65);
+    float limbB = 0.18 + 0.82 * pow(cosTheta, 0.95);
     color *= vec3(limbR, limbG, limbB);
 
-    // Corona glow at the very edge
+    // === Solar prominences at the limb ===
     float edgeFactor = 1.0 - cosTheta;
-    float corona = pow(edgeFactor, 8.0);
-    vec3 coronaColor = uStarColor * 0.5 + vec3(0.1, 0.05, 0.0);
-    color += coronaColor * corona * 0.4;
+    float limbRegion = smoothstep(0.7, 0.95, edgeFactor);
 
-    // Emissive boost
-    color *= 1.2;
+    // Prominence arcs: ridged noise along the limb
+    float promNoise = ridgedNoise(normal * 6.0 + vec3(slowTime * 0.5), 5);
+    float prominence = limbRegion * smoothstep(0.4, 0.7, promNoise);
+    vec3 promColor = uStarColor * 1.5 * vec3(1.0, 0.6, 0.3);
+    color += promColor * prominence * 0.25;
 
-    // Subtle HDR bloom simulation
+    // === Corona glow at the very edge ===
+    float corona = pow(edgeFactor, 6.0);
+    // Structured corona with streamers
+    float coronaStreamer = fbmNorm(normal * 4.0 + vec3(verySlowTime * 0.3), 5);
+    float coronaStructure = 0.6 + coronaStreamer * 0.4;
+    vec3 coronaColor = uStarColor * 0.55 + vec3(0.12, 0.06, 0.0);
+    color += coronaColor * corona * coronaStructure * 0.5;
+
+    // === Emissive boost ===
+    color *= 1.25;
+
+    // === HDR bloom simulation ===
     float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
-    color += color * max(luminance - 0.8, 0.0) * 0.3;
+    color += color * max(luminance - 0.7, 0.0) * 0.35;
 
     FragColor = vec4(color, 1.0);
 }

@@ -59,15 +59,15 @@ MoonProperties MoonGenerator::generate(uint32_t planetSeed, int moonIndex,
     uint32_t moonSeed = planetSeed ^ (static_cast<uint32_t>(moonIndex) * 6271u);
     MoonProperties moon{};
 
-    // Moons are small relative to their parent
-    moon.radius = planetRadius * (0.05f + hashFloat(moonSeed, 1) * 0.2f);
+    // Moons are small relative to their parent (v0.6.0: more realistic ratios)
+    moon.radius = planetRadius * (0.02f + hashFloat(moonSeed, 1) * 0.10f);
     // Minimum visible size
-    moon.radius = std::max(moon.radius, 0.1f);
+    moon.radius = std::max(moon.radius, 0.02f);
 
-    // Orbital distance: progressively farther out
-    float baseOrbitDist = planetRadius * 2.0f +
-                          static_cast<float>(moonIndex) * planetRadius * 1.5f;
-    float jitter = (hashFloat(moonSeed, 2) - 0.5f) * planetRadius * 0.5f;
+    // Orbital distance: progressively farther out (v0.6.0: wider spacing)
+    float baseOrbitDist = planetRadius * 4.0f +
+                          static_cast<float>(moonIndex) * planetRadius * 3.0f;
+    float jitter = (hashFloat(moonSeed, 2) - 0.5f) * planetRadius * 1.0f;
     moon.orbitalDistance = baseOrbitDist + jitter;
 
     // Orbital period: Kepler-like, proportional to distance^1.5
@@ -91,6 +91,10 @@ MoonProperties MoonGenerator::generate(uint32_t planetSeed, int moonIndex,
     moon.colorPrimary = hsvToRgb(hue, sat, val);
     moon.colorSecondary = hsvToRgb(hue + 10.0f, sat * 0.8f, val + 0.1f);
     moon.colorAccent = hsvToRgb(20.0f, 0.15f, val + 0.2f);
+
+    // v0.6.0: rotation (moons tend to be tidally locked, slow rotation)
+    moon.rotationSpeed = 0.1f + hashFloat(moonSeed, 13) * 0.3f;
+    moon.axialTilt = hashFloat(moonSeed, 14) * 0.15f; // Small tilt
 
     return moon;
 }

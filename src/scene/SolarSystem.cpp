@@ -70,7 +70,9 @@ void SolarSystem::generate(uint32_t seed, bool binary) {
     m_star.temperature = starProps.temperature;
     m_star.starColor = starProps.color;
     m_star.luminosity = starProps.luminosity;
-    m_star.mass = 500.0f + starProps.luminosity * 200.0f;
+    m_star.mass = 2000.0f + starProps.luminosity * 500.0f;
+    m_star.rotationSpeed = 0.05f + hashFloat(seed, 700) * 0.1f; // Stars rotate slowly
+    m_star.axialTilt = hashFloat(seed, 701) * 0.13f; // Small tilt
 
     // Generate companion star if binary
     m_companionStar = CelestialBody{};
@@ -86,7 +88,7 @@ void SolarSystem::generate(uint32_t seed, bool binary) {
         m_companionStar.mass = m_star.mass * 0.6f;
 
         // Binary orbit: place companion at a distance, give orbital velocity
-        float binaryDist = 8.0f + hashFloat(seed, 600) * 6.0f;
+        float binaryDist = 18.0f + hashFloat(seed, 600) * 10.0f;
         m_companionStar.position = glm::vec3(binaryDist, 0.0f, 0.0f);
 
         // Orbital velocities for binary (both orbit the barycenter)
@@ -125,11 +127,12 @@ void SolarSystem::generate(uint32_t seed, bool binary) {
         body.colorSecondary = pp.colorSecondary;
         body.colorAccent = pp.colorAccent;
 
+        // Mass: scaled to new size ratios (v0.6.0)
         float r3 = pp.radius * pp.radius * pp.radius;
         switch (pp.type) {
-            case PlanetType::Rocky:    body.mass = r3 * 2.0f; break;
-            case PlanetType::GasGiant: body.mass = r3 * 0.5f; break;
-            case PlanetType::IceGiant: body.mass = r3 * 0.8f; break;
+            case PlanetType::Rocky:    body.mass = r3 * 80.0f; break;
+            case PlanetType::GasGiant: body.mass = r3 * 15.0f; break;
+            case PlanetType::IceGiant: body.mass = r3 * 25.0f; break;
         }
 
         body.orbit.semiMajorAxis = pp.orbitalDistance;
@@ -149,6 +152,10 @@ void SolarSystem::generate(uint32_t seed, bool binary) {
         body.atmosphere.thickness = pp.atmosphereThickness;
         body.atmosphere.color = pp.atmosphereColor;
         body.atmosphere.density = pp.atmosphereDensity;
+
+        // v0.6.0: rotation
+        body.rotationSpeed = pp.rotationSpeed;
+        body.axialTilt = pp.axialTilt;
 
         body.position = computeOrbitalPosition(body.orbit, 0.0f, m_star.position);
         body.velocity = NBodySimulation::circularOrbitalVelocity(
@@ -174,13 +181,17 @@ void SolarSystem::generate(uint32_t seed, bool binary) {
             moon.colorSecondary = mp.colorSecondary;
             moon.colorAccent = mp.colorAccent;
             moon.parentIndex = i;
-            moon.mass = mp.radius * mp.radius * mp.radius * 0.5f;
+            moon.mass = mp.radius * mp.radius * mp.radius * 20.0f;
 
             moon.orbit.semiMajorAxis = mp.orbitalDistance;
             moon.orbit.eccentricity = 0.02f;
             moon.orbit.inclination = mp.orbitalInclination;
             moon.orbit.orbitalPeriod = mp.orbitalPeriod;
             moon.orbit.startAngle = mp.startAngle;
+
+            // v0.6.0: rotation
+            moon.rotationSpeed = mp.rotationSpeed;
+            moon.axialTilt = mp.axialTilt;
 
             moon.position = computeOrbitalPosition(moon.orbit, 0.0f, body.position);
             moon.velocity = body.velocity +
@@ -206,7 +217,7 @@ void SolarSystem::generate(uint32_t seed, bool binary) {
         }
     }
 
-    if (gapIndex > 0 && maxGap > 8.0f) {
+    if (gapIndex > 0 && maxGap > 15.0f) {
         float gapCenter = (orbitalDistances[static_cast<size_t>(gapIndex - 1)] +
                            orbitalDistances[static_cast<size_t>(gapIndex)]) * 0.5f;
         float beltWidth = maxGap * 0.4f;
@@ -214,7 +225,7 @@ void SolarSystem::generate(uint32_t seed, bool binary) {
         m_asteroidBeltOuter = gapCenter + beltWidth * 0.5f;
     } else {
         // Fallback: place belt at 60% of the way out
-        float outerDist = orbitalDistances.empty() ? 50.0f : orbitalDistances.back();
+        float outerDist = orbitalDistances.empty() ? 100.0f : orbitalDistances.back();
         m_asteroidBeltInner = outerDist * 0.55f;
         m_asteroidBeltOuter = outerDist * 0.65f;
     }
@@ -233,6 +244,8 @@ void SolarSystem::update(float deltaTime, float timeScale) {
             body->collisionFlash -= deltaTime;
             if (body->collisionFlash < 0.0f) body->collisionFlash = 0.0f;
         }
+        // v0.6.0: accumulate rotation
+        body->rotationAngle += body->rotationSpeed * dt;
     }
 
     // Record trails periodically
@@ -337,7 +350,8 @@ const CelestialBody* SolarSystem::findClosestToRay(const glm::vec3& origin,
         glm::vec3 closestPoint = origin + direction * t;
         float dist = glm::length(closestPoint - body->position);
 
-        float hitRadius = body->radius * 2.0f;
+        // Hit radius: generous for small bodies (v0.6.0)
+        float hitRadius = std::max(body->radius * 3.0f, 0.5f);
         if (dist < hitRadius && t < closestDist) {
             closestDist = t;
             closest = body;

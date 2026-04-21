@@ -18,12 +18,14 @@ int LODSphere::selectLOD(float distance, float radius, float fovDegrees,
     float projectedSize = (radius / distance) * static_cast<float>(screenHeight)
                           / (2.0f * std::tan(fovRad * 0.5f));
 
-    // Map pixel size to LOD level
+    // Map pixel size to LOD level (v0.6.0: 8 levels for close-up detail)
     // Larger on screen -> higher LOD
-    if (projectedSize > 400.0f) return 5;
-    if (projectedSize > 200.0f) return 4;
-    if (projectedSize > 80.0f)  return 3;
-    if (projectedSize > 30.0f)  return 2;
+    if (projectedSize > 600.0f) return 7;
+    if (projectedSize > 400.0f) return 6;
+    if (projectedSize > 250.0f) return 5;
+    if (projectedSize > 140.0f) return 4;
+    if (projectedSize > 60.0f)  return 3;
+    if (projectedSize > 25.0f)  return 2;
     if (projectedSize > 8.0f)   return 1;
     return 0;
 }

@@ -79,6 +79,11 @@ struct CelestialBody {
 
     // Collision flash timer (visual feedback)
     float collisionFlash = 0.0f;
+
+    // v0.6.0: rotation
+    float rotationSpeed = 0.0f;    // Radians per second
+    float axialTilt = 0.0f;        // Radians, tilt of rotation axis
+    float rotationAngle = 0.0f;    // Current rotation angle (accumulated)
 };
 
 } // namespace usim

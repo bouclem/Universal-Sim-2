@@ -6,6 +6,7 @@ layout(location = 1) in vec3 aNormal;
 uniform mat4 uModel;
 uniform mat4 uView;
 uniform mat4 uProjection;
+uniform mat3 uRotation; // v0.6.0: axial tilt + spin rotation
 
 out vec3 vNormal;
 out vec3 vWorldPos;
@@ -14,7 +15,8 @@ out vec3 vLocalPos;
 void main() {
     vec4 worldPos = uModel * vec4(aPosition, 1.0);
     vWorldPos = worldPos.xyz;
-    vLocalPos = aPosition; // Unit sphere position, used for noise sampling
+    // Rotate the local sampling position for animated surface rotation
+    vLocalPos = uRotation * aPosition;
     vNormal = normalize(mat3(uModel) * aNormal);
     gl_Position = uProjection * uView * worldPos;
 }

@@ -50,22 +50,22 @@ PlanetProperties PlanetGenerator::generate(uint32_t seed, int index,
         planet.type = (typeRoll > 0.5f) ? PlanetType::IceGiant : PlanetType::GasGiant;
     }
 
-    // Radius depends on type
+    // Radius depends on type (v0.6.0: realistic ratios — star ~100x rocky, ~10x gas)
     switch (planet.type) {
         case PlanetType::Rocky:
-            planet.radius = 0.3f + hashFloat(planetSeed, 2) * 0.8f;
+            planet.radius = 0.06f + hashFloat(planetSeed, 2) * 0.12f;
             break;
         case PlanetType::GasGiant:
-            planet.radius = 1.5f + hashFloat(planetSeed, 2) * 2.5f;
+            planet.radius = 0.6f + hashFloat(planetSeed, 2) * 1.2f;
             break;
         case PlanetType::IceGiant:
-            planet.radius = 1.0f + hashFloat(planetSeed, 2) * 1.5f;
+            planet.radius = 0.3f + hashFloat(planetSeed, 2) * 0.7f;
             break;
     }
 
-    // Orbital distance: Titius-Bode-like spacing
-    float baseDistance = 15.0f + static_cast<float>(index) * 12.0f;
-    float jitter = (hashFloat(planetSeed, 3) - 0.5f) * 4.0f;
+    // Orbital distance: Titius-Bode-like spacing (v0.6.0: wider orbits)
+    float baseDistance = 30.0f + static_cast<float>(index) * 25.0f;
+    float jitter = (hashFloat(planetSeed, 3) - 0.5f) * 8.0f;
     planet.orbitalDistance = baseDistance + jitter;
 
     // Random starting orbital angle
@@ -81,8 +81,8 @@ PlanetProperties PlanetGenerator::generate(uint32_t seed, int index,
     // Inclination: small tilt from ecliptic
     planet.inclination = (hashFloat(planetSeed, 21) - 0.5f) * 0.15f;
     // Orbital period: Kepler's 3rd law (T^2 ∝ a^3), scaled for gameplay
-    float distAU = planet.orbitalDistance / 15.0f; // normalize
-    planet.orbitalPeriod = 15.0f * std::pow(distAU, 1.5f);
+    float distAU = planet.orbitalDistance / 30.0f; // normalize to inner orbit
+    planet.orbitalPeriod = 20.0f * std::pow(distAU, 1.5f);
 
     // --- Rings (v0.2.0) ---
     float ringRoll = hashFloat(planetSeed, 30);
@@ -176,6 +176,30 @@ PlanetProperties PlanetGenerator::generate(uint32_t seed, int index,
             planet.colorAccent = hsvToRgb(hue - 20.0f, 0.5f, 0.8f);
             break;
         }
+    }
+
+    // --- Rotation (v0.6.0) ---
+    // Axial tilt: Earth-like range with occasional extreme tilts (Uranus)
+    float tiltRoll = hashFloat(planetSeed, 50);
+    if (tiltRoll > 0.92f) {
+        // ~8% chance of extreme tilt (Uranus-like, 60-90 degrees)
+        planet.axialTilt = (1.05f + hashFloat(planetSeed, 51) * 0.52f);
+    } else {
+        // Normal tilt: 0-45 degrees
+        planet.axialTilt = hashFloat(planetSeed, 51) * 0.79f;
+    }
+
+    // Rotation speed: gas giants spin faster, rocky planets slower
+    switch (planet.type) {
+        case PlanetType::Rocky:
+            planet.rotationSpeed = 0.3f + hashFloat(planetSeed, 52) * 0.5f;
+            break;
+        case PlanetType::GasGiant:
+            planet.rotationSpeed = 0.8f + hashFloat(planetSeed, 52) * 1.0f;
+            break;
+        case PlanetType::IceGiant:
+            planet.rotationSpeed = 0.6f + hashFloat(planetSeed, 52) * 0.8f;
+            break;
     }
 
     return planet;

@@ -2,7 +2,7 @@
 
 A 3D procedural space simulation combining ideas from Universe Sandbox² and SpaceEngine.
 
-## Version 0.5.0
+## Version 0.6.0
 
 Multi-scale procedural universe with seamless zoom:
 - **Galaxy view** — procedural spiral galaxy with 3000 stars, dust clouds, nebulae
@@ -10,15 +10,19 @@ Multi-scale procedural universe with seamless zoom:
 - **Solar system view** — full detail: planets, moons, rings, atmospheres, asteroids
 - N-body gravitational physics (Velocity Verlet)
 - Binary star systems (~15% of stars)
-- Procedurally generated stars with animated granulation, sunspots, corona
-- Realistic planet surfaces: biomes, oceans, storms, methane haze
+- Realistic size ratios: star ~100x rocky planets, ~10x gas giants
+- Planetary rotation with axial tilt (visible surface spin)
+- 8-level LOD icosphere (up to 327K triangles for close-up detail)
+- Procedurally generated stars with multi-scale granulation, sunspots, prominences, corona
+- Rocky planets: tectonic plates, erosion, volcanoes, lava glow, 10+ biomes, rivers, craters
+- Gas giants: 4-tier banding, jet streams, ammonia clouds, lightning, Great Spot
+- Ice giants: wind shear, methane haze layers, dark spots, aurora bands
 - Moons, planetary rings, and atmospheres with Rayleigh/Mie scattering
 - Asteroid belts with instanced rendering
 - Orbit path prediction and trail visualization
 - Body focus/follow camera mode
 - Collision detection and response
 - Milky Way background with nebulae and multi-layer starfield
-- LOD icosphere rendering for all celestial bodies
 - Camera speed auto-scales with viewing distance
 
 ## Build

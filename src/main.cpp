@@ -78,8 +78,8 @@ std::string scaleLabel(ViewScale s) {
 int main() {
     try {
         // --- Init ---
-        Window window(1280, 720, "Universal Sim 2 - v0.5.0");
-        Camera camera(glm::vec3(0.0f, 10.0f, 60.0f));
+        Window window(1280, 720, "Universal Sim 2 - v0.6.0");
+        Camera camera(glm::vec3(0.0f, 20.0f, 100.0f));
         g_camera = &camera;
 
         glfwSetCursorPosCallback(window.handle(), mouseCallback);
@@ -109,7 +109,7 @@ int main() {
 
         // Start inside the nearest star system
         if (!galaxy.stars().empty()) {
-            camera = Camera(galaxy.stars()[0].position + glm::vec3(0, 10, 60));
+            camera = Camera(galaxy.stars()[0].position + glm::vec3(0, 20, 100));
         }
         g_camera = &camera;
         glfwSetCursorPosCallback(window.handle(), mouseCallback);
@@ -198,7 +198,7 @@ int main() {
                 followTarget = nullptr;
                 followTargetName.clear();
                 if (!galaxy.stars().empty()) {
-                    camera = Camera(galaxy.stars()[0].position + glm::vec3(0, 10, 60));
+                    camera = Camera(galaxy.stars()[0].position + glm::vec3(0, 20, 100));
                     g_camera = &camera;
                     glfwSetCursorPosCallback(window.handle(), mouseCallback);
                     glfwSetScrollCallback(window.handle(), scrollCallback);
@@ -392,6 +392,13 @@ int main() {
                     glm::mat4 model = glm::translate(glm::mat4(1.0f), body->position);
                     model = glm::scale(model, glm::vec3(body->radius));
 
+                    // v0.6.0: compute rotation matrix (axial tilt + spin)
+                    glm::mat4 tilt = glm::rotate(glm::mat4(1.0f), body->axialTilt,
+                                                  glm::vec3(0.0f, 0.0f, 1.0f));
+                    glm::mat4 spin = glm::rotate(glm::mat4(1.0f), body->rotationAngle,
+                                                  glm::vec3(0.0f, 1.0f, 0.0f));
+                    glm::mat3 rotation = glm::mat3(tilt * spin);
+
                     if (body->isStar) {
                         starShader.use();
                         starShader.setMat4("uModel", model);
@@ -405,6 +412,7 @@ int main() {
                         planetShader.setMat4("uModel", model);
                         planetShader.setMat4("uView", view);
                         planetShader.setMat4("uProjection", projection);
+                        planetShader.setMat3("uRotation", rotation);
                         planetShader.setVec3("uStarPos", sys->star().position);
                         planetShader.setVec3("uStarColor", sys->star().starColor);
                         planetShader.setVec3("uCameraPos", camera.position());
@@ -496,7 +504,7 @@ int main() {
 
                 // Top-left
                 textRenderer.renderText(
-                    "Universal Sim 2  v0.5.0", 10, 10, scale,
+                    "Universal Sim 2  v0.6.0", 10, 10, scale,
                     glm::vec3(0.8f), sw, sh);
                 textRenderer.renderText(
                     scaleLabel(currentScale), 10, 10 + lineH, scale,

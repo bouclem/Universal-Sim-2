@@ -26,20 +26,21 @@ StarProperties StarGenerator::generate(uint32_t seed) {
     t = std::pow(t, 2.0f);
     star.temperature = 2000.0f + t * 38000.0f;
 
-    // Radius: roughly correlated with temperature
-    float baseRadius = 3.0f + hashFloat(seed, 2) * 4.0f;
+    // Radius: roughly correlated with temperature (v0.6.0: larger stars)
+    // Typical range: 6-18 units, hot stars can reach ~36
+    float baseRadius = 6.0f + hashFloat(seed, 2) * 8.0f;
     if (star.temperature > 10000.0f) {
-        baseRadius *= 1.5f + hashFloat(seed, 3) * 2.0f;
+        baseRadius *= 1.5f + hashFloat(seed, 3) * 1.5f;
     }
     star.radius = baseRadius;
 
     // Luminosity from Stefan-Boltzmann (simplified)
     float tempRatio = star.temperature / 5778.0f; // relative to Sun
-    float radiusRatio = star.radius / 5.0f;
+    float radiusRatio = star.radius / 10.0f;
     star.luminosity = radiusRatio * radiusRatio * std::pow(tempRatio, 4.0f);
 
-    // Mass: rough main-sequence relation
-    star.mass = 500.0f + star.luminosity * 200.0f;
+    // Mass: rough main-sequence relation (v0.6.0: scaled for new G)
+    star.mass = 2000.0f + star.luminosity * 500.0f;
 
     star.color = blackbodyColor(star.temperature);
 
